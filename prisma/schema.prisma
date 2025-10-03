@@ -8,14 +8,14 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String?
-  role          Role     @default(USER)
-  createdAt     DateTime @default(now())
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  name           String?
+  role           Role            @default(USER)
+  createdAt      DateTime        @default(now())
   savedLocations SavedLocation[]
-  searches      SavedSearch[]
+  searches       SavedSearch[]
 }
 
 enum Role {
@@ -24,9 +24,9 @@ enum Role {
 }
 
 model Location {
-  id            String      @id @default(cuid())
+  id            String          @id @default(cuid())
   title         String
-  slug          String      @unique
+  slug          String          @unique
   summary       String?
   description   String?
   propertyType  String
@@ -42,13 +42,18 @@ model Location {
   dailyRate     Int?
   halfDayRate   Int?
   features      String[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  approved      Boolean     @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  approved      Boolean         @default(false)
 
-  tags          Tag[]       @relation("LocationTags", references: [id])
+  // Implicit many-to-many (NO fields/references on either side)
+  tags          Tag[]
+
   photos        Photo[]
   inquiries     Inquiry[]
+
+  // Back-relation for SavedLocation (fixes the missing opposite relation error)
+  savedLocations SavedLocation[]
 }
 
 model Photo {
@@ -62,9 +67,11 @@ model Photo {
 }
 
 model Tag {
-  id        String      @id @default(cuid())
-  name      String      @unique
-  locations Location[]  @relation("LocationTags")
+  id        String     @id @default(cuid())
+  name      String     @unique
+
+  // Implicit many-to-many back side
+  locations Location[]
 }
 
 model SavedLocation {
@@ -99,9 +106,9 @@ model Inquiry {
   startDate   DateTime?
   endDate     DateTime?
   message     String?
-  location    Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  location    Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
   locationId  String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime   @default(now())
 }
 
 model PropertySubmission {
@@ -121,3 +128,4 @@ model PropertySubmission {
   photoUrls    String[]
   createdAt    DateTime @default(now())
 }
+
