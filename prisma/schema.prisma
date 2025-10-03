@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {
@@ -54,6 +55,12 @@ model Location {
 
   // Back-relation for SavedLocation (fixes the missing opposite relation error)
   savedLocations SavedLocation[]
+
+  @@index([approved, createdAt])
+  @@index([approved, title])
+  @@index([approved, city])
+  @@index([approved, propertyType])
+
 }
 
 model Photo {

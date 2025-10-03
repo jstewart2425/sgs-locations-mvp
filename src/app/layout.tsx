@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="border-b">
           <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
             <Link href="/" className="font-bold text-xl">SGS Locations</Link>
-            <nav className="hidden md:flex gap-6">
+            <nav className="flex gap-6">
               <Link href="/search">Search Locations</Link>
               <Link href="/library">Location Library</Link>
               <Link href="/about">About</Link>
