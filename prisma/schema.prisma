@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  role          Role     @default(USER)
+  createdAt     DateTime @default(now())
+  savedLocations SavedLocation[]
+  searches      SavedSearch[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Location {
+  id            String      @id @default(cuid())
+  title         String
+  slug          String      @unique
+  summary       String?
+  description   String?
+  propertyType  String
+  city          String?
+  region        String?
+  squareFeet    Int?
+  lotSize       Int?
+  bedrooms      Int?
+  bathrooms     Int?
+  parkingSpaces Int?
+  yearBuilt     Int?
+  style         String?
+  dailyRate     Int?
+  halfDayRate   Int?
+  features      String[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  approved      Boolean     @default(false)
+
+  tags          Tag[]       @relation("LocationTags", references: [id])
+  photos        Photo[]
+  inquiries     Inquiry[]
+}
+
+model Photo {
+  id         String   @id @default(cuid())
+  url        String
+  alt        String?
+  isPrimary  Boolean  @default(false)
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId String
+  createdAt  DateTime @default(now())
+}
+
+model Tag {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  locations Location[]  @relation("LocationTags")
+}
+
+model SavedLocation {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, locationId])
+}
+
+model SavedSearch {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  name      String?
+  query     String?
+  tags      String[]
+  filters   Json?
+  createdAt DateTime  @default(now())
+}
+
+model Inquiry {
+  id          String    @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  company     String?
+  projectType String?
+  startDate   DateTime?
+  endDate     DateTime?
+  message     String?
+  location    Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  locationId  String?
+  createdAt   DateTime  @default(now())
+}
+
+model PropertySubmission {
+  id           String   @id @default(cuid())
+  ownerName    String
+  ownerEmail   String
+  ownerPhone   String?
+  propertyName String
+  propertyType String
+  address1     String
+  city         String
+  state        String
+  zip          String
+  description  String?
+  features     String[]
+  status       String   @default("PENDING")
+  photoUrls    String[]
+  createdAt    DateTime @default(now())
+}
