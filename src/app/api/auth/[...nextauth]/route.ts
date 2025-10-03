@@ -1,8 +1,8 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { verifyUser } from "@/lib/auth";
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     Credentials({
       name: "Credentials",
@@ -13,9 +13,12 @@ const handler = NextAuth({
         if (!user) return null;
         return { id: user.id, email: user.email, name: user.name || "" };
       },
-    })
+    }),
   ],
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
+
