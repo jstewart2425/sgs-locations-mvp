@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -22,7 +22,17 @@ function fromCSV(csv?: string | null) {
   return csv.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-export default function SearchPage() {
+// --- Export a wrapper that provides Suspense ---
+export default function SearchPageWrapper() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto px-4 py-8">Loading search…</div>}>
+      <SearchPage />
+    </Suspense>
+  );
+}
+
+// --- Your original page component moved below ---
+function SearchPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
