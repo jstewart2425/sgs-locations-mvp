@@ -22,7 +22,7 @@ function fromCSV(csv?: string | null) {
   return csv.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-// --- Export a wrapper that provides Suspense ---
+// Wrapper that satisfies Next's requirement for Suspense when using useSearchParams
 export default function SearchPageWrapper() {
   return (
     <Suspense fallback={<div className="max-w-6xl mx-auto px-4 py-8">Loading search…</div>}>
@@ -31,24 +31,38 @@ export default function SearchPageWrapper() {
   );
 }
 
-// --- Your original page component moved below ---
 function SearchPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const sp = useSearchParams();
 
-  // --- Initialize state from URL params on first render ---
-  const [q, setQ] = useState(searchParams.get("q") || "");
-  const [city, setCity] = useState(searchParams.get("city") || "");
-  const [type, setType] = useState(searchParams.get("type") || "");
-  const [style, setStyle] = useState(searchParams.get("style") || "");
-  const [tags, setTags] = useState<string[]>(fromCSV(searchParams.get("tags")));
+  // seed from URL
+  const [q, setQ] = useState(sp.get("q") || "");
+  const [city, setCity] = useState(sp.get("city") || "");
+  const [type, setType] = useState(sp.get("type") || "");
+  const [style, setStyle] = useState(sp.get("style") || "");
+  const [tags, setTags] = useState<string[]>(fromCSV(sp.get("tags")));
+  const [sort, setSort] = useState(sp.get("sort") || "recent"); // recent | alpha | city
+  const [tagMode, setTagMode] = useState((sp.get("tagMode") || "OR").toUpperCase()); // OR | AND
+  const [pageSize, setPageSize] = useState<number>(Number(sp.get("pageSize") || 12));
+  const [page, setPage] = useState<number>(Math.max(1, Number(sp.get("page") || 1)));
 
   const [items, setItems] = useState<Loc[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [pageCount, setPageCount] = useState<number>(1);
+  const [hasPrev, setHasPrev] = useState<boolean>(false);
+  const [hasNext, setHasNext] = useState<boolean>(false);
+
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Build a stable query string from current filters
+  // tags text input control
+  const [tagsText, setTagsText] = useState(sp.get("tags") || "");
+  useEffect(() => {
+    setTags(fromCSV(tagsText));
+  }, [tagsText]);
+
+  // Build query string from current filters
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
@@ -56,44 +70,51 @@ function SearchPage() {
     if (type) params.set("type", type);
     if (style) params.set("style", style);
     if (tags.length) params.set("tags", toCSV(tags));
+    if (sort) params.set("sort", sort);
+    if (tagMode) params.set("tagMode", tagMode);
+    if (page > 1) params.set("page", String(page));
+    if (pageSize !== 12) params.set("pageSize", String(pageSize));
     return params.toString();
-  }, [q, city, type, style, tags]);
+  }, [q, city, type, style, tags, sort, tagMode, page, pageSize]);
 
   async function runSearch(pushUrl = true) {
     try {
       setLoading(true);
       setErr(null);
       if (pushUrl) {
-        // keep URL in sync so you can share/bookmark
         router.push(`${pathname}${queryString ? `?${queryString}` : ""}`, { scroll: false });
       }
       const res = await fetch(`/api/search?${queryString}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const json = await res.json();
+
       setItems(json.items || []);
+      setTotal(json.total || 0);
+      setPage(json.page || 1);
+      setPageCount(json.pageCount || 1);
+      setHasPrev(!!json.hasPrevPage);
+      setHasNext(!!json.hasNextPage);
     } catch (e: any) {
       setErr(e?.message || "Search failed");
       setItems([]);
+      setTotal(0);
+      setPageCount(1);
+      setHasPrev(false);
+      setHasNext(false);
     } finally {
       setLoading(false);
     }
   }
 
-  // Run an initial search (based on URL) on mount
+  // initial search (based on URL) on mount
   useEffect(() => {
-    // On first load only; we already seeded state from URL
     runSearch(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Controlled text for tags input (so typing shows in the box)
-  const [tagsText, setTagsText] = useState(searchParams.get("tags") || "");
-  useEffect(() => {
-    setTags(fromCSV(tagsText));
-  }, [tagsText]);
-
-  const resultsLabel =
-    loading ? "Loading…" : `${items.length} result${items.length === 1 ? "" : "s"}`;
+  const resultsLabel = loading
+    ? "Loading…"
+    : `${total} result${total === 1 ? "" : "s"} • Page ${page}/${pageCount}`;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -101,15 +122,15 @@ function SearchPage() {
 
       <div className="grid md:grid-cols-[280px_1fr] gap-6">
         {/* Filters */}
-        <aside className="border rounded p-3">
+        <aside className="border rounded p-3 space-y-3">
           <input
-            className="w-full border rounded px-2 py-1 mb-3"
+            className="w-full border rounded px-2 py-1"
             placeholder="Keyword…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
 
-          <div className="mb-2">
+          <div>
             <label className="text-sm">City</label>
             <input
               className="w-full border rounded px-2 py-1"
@@ -118,7 +139,7 @@ function SearchPage() {
             />
           </div>
 
-          <div className="mb-2">
+          <div>
             <label className="text-sm">Type</label>
             <input
               className="w-full border rounded px-2 py-1"
@@ -128,7 +149,7 @@ function SearchPage() {
             />
           </div>
 
-          <div className="mb-2">
+          <div>
             <label className="text-sm">Style</label>
             <input
               className="w-full border rounded px-2 py-1"
@@ -138,7 +159,7 @@ function SearchPage() {
             />
           </div>
 
-          <div className="mb-3">
+          <div>
             <label className="text-sm">Tags (comma-separated)</label>
             <input
               className="w-full border rounded px-2 py-1"
@@ -146,6 +167,59 @@ function SearchPage() {
               onChange={(e) => setTagsText(e.target.value)}
               placeholder="pool, ranch, warehouse"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-sm">Sort</label>
+              <select
+                className="w-full border rounded px-2 py-1"
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+              >
+                <option value="recent">Most recent</option>
+                <option value="alpha">Alphabetical</option>
+                <option value="city">City</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm">Tag mode</label>
+              <select
+                className="w-full border rounded px-2 py-1"
+                value={tagMode}
+                onChange={(e) => setTagMode(e.target.value.toUpperCase())}
+              >
+                <option value="OR">OR (any tag)</option>
+                <option value="AND">AND (all tags)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-sm">Page size</label>
+              <select
+                className="w-full border rounded px-2 py-1"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+              >
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+                <option value={36}>36</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm">Page</label>
+              <input
+                className="w-full border rounded px-2 py-1"
+                type="number"
+                min={1}
+                max={Math.max(1, pageCount)}
+                value={page}
+                onChange={(e) => setPage(Math.max(1, Number(e.target.value || 1)))}
+              />
+            </div>
           </div>
 
           <div className="flex gap-2">
@@ -165,7 +239,10 @@ function SearchPage() {
                 setStyle("");
                 setTags([]);
                 setTagsText("");
-                // Also clear URL immediately
+                setSort("recent");
+                setTagMode("OR");
+                setPage(1);
+                setPageSize(12);
                 router.push(pathname, { scroll: false });
                 runSearch(false);
               }}
@@ -177,10 +254,36 @@ function SearchPage() {
 
         {/* Results */}
         <section>
-          <div className="text-sm text-gray-600 mb-3">{resultsLabel}</div>
+          <div className="flex items-center justify-between mb-3 text-sm text-gray-700">
+            <div>{resultsLabel}</div>
+            <div className="flex gap-2">
+              <button
+                className="px-3 py-1.5 border rounded disabled:opacity-50"
+                onClick={() => {
+                  if (!hasPrev) return;
+                  setPage((p) => Math.max(1, p - 1));
+                  setTimeout(() => runSearch(true), 0);
+                }}
+                disabled={!hasPrev || loading}
+              >
+                ← Prev
+              </button>
+              <button
+                className="px-3 py-1.5 border rounded disabled:opacity-50"
+                onClick={() => {
+                  if (!hasNext) return;
+                  setPage((p) => p + 1);
+                  setTimeout(() => runSearch(true), 0);
+                }}
+                disabled={!hasNext || loading}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
 
           {err ? (
-            <div className="text-red-700 border border-red-200 bg-red-50 p-3 rounded">
+            <div className="text-red-700 border border-red-200 bg-red-50 p-3 rounded mb-4">
               {err}
             </div>
           ) : null}
@@ -193,8 +296,7 @@ function SearchPage() {
 
           <div className="grid md:grid-cols-3 gap-4">
             {items.map((it) => {
-              const hero =
-                it.photos.find((p) => p.isPrimary)?.url || it.photos[0]?.url || "";
+              const hero = it.photos.find((p) => p.isPrimary)?.url || it.photos[0]?.url || "";
               return (
                 <Link
                   href={`/locations/${it.slug}`}
@@ -220,7 +322,6 @@ function SearchPage() {
               );
             })}
 
-            {/* Simple loading skeletons */}
             {loading &&
               Array.from({ length: 6 }).map((_, i) => (
                 <div key={`sk-${i}`} className="border rounded overflow-hidden">
