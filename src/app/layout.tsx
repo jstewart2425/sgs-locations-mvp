@@ -26,33 +26,40 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
         <main className="flex-1">{children}</main>
         <footer className="border-t">
-          <div className="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-4 gap-6 text-sm">
-            <div>
-              <div className="font-semibold mb-2">SGS Locations</div>
-              <p>Dallas Ft. Worth’s largest location database.</p>
-            </div>
-            <div>
-              <div className="font-semibold mb-2">Quick Links</div>
-              <div className="grid gap-1">
-                <Link href="/search">Search</Link>
-                <Link href="/library">Library</Link>
-                <Link href="/about">About</Link>
-                <Link href="/contact">Contact</Link>
-              </div>
-            </div>
-            <div>
-              <div className="font-semibold mb-2">For Owners</div>
-              <Link href="/list-your-property">List Your Property</Link>
-            </div>
-            <div>
-              <div className="font-semibold mb-2">Contact</div>
-              <div>Fort Worth, TX</div>
-              <a href="tel:15555555555">(555) 555-5555</a><br/>
-              <a href="mailto:info@sgslocations.com">info@sgslocations.com</a>
-            </div>
-          </div>
-          <div className="text-xs text-center py-3 border-t">© {new Date().getFullYear()} SGS Locations</div>
-        </footer>
+  <div className="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-4 gap-6 text-sm">
+    <div>
+      <div className="font-semibold mb-2">SGS Locations</div>
+      <p>Dallas Ft. Worth’s largest location database.</p>
+      <div className="flex gap-3 mt-3">
+        <a href="#" aria-label="Instagram" className="underline">IG</a>
+        <a href="#" aria-label="Facebook" className="underline">FB</a>
+        <a href="#" aria-label="LinkedIn" className="underline">LI</a>
+      </div>
+    </div>
+    <div>
+      <div className="font-semibold mb-2">Quick Links</div>
+      <div className="grid gap-1">
+        <Link href="/search">Search</Link>
+        <Link href="/library">Library</Link>
+        <Link href="/about">About</Link>
+        <Link href="/contact">Contact</Link>
+      </div>
+    </div>
+    <div>
+      <div className="font-semibold mb-2">For Owners</div>
+      <Link href="/list-your-property">List Your Property</Link>
+    </div>
+    <div>
+      <div className="font-semibold mb-2">Contact</div>
+      <div>Fort Worth, TX</div>
+      <a href="tel:15555555555">(555) 555-5555</a><br/>
+      <a href="mailto:info@sgslocations.com">info@sgslocations.com</a>
+    </div>
+  </div>
+  <div className="text-xs text-center py-3 border-t">
+    © {new Date().getFullYear()} SGS Locations • <Link href="/privacy">Privacy</Link> • <Link href="/terms">Terms</Link>
+  </div>
+</footer>
       </body>
     </html>
   );

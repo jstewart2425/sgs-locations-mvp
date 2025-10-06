@@ -2,81 +2,69 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 
 export const metadata = {
-  title: "Location Library · SGS Locations",
-  description: "Browse approved locations by tag and property type.",
+  title: "Location Library — SGS Locations",
+  description: "Browse filming locations by category.",
 };
 
+const CATEGORIES: { label: string; href: string; hint?: string }[] = [
+  { label: "Modern Homes", href: "/search?type=Residential&style=Modern" },
+  { label: "Luxury Estates", href: "/search?q=estate" },
+  { label: "Historic", href: "/search?style=Historic" },
+  { label: "Industrial / Warehouses", href: "/search?type=Commercial&q=warehouse" },
+  { label: "Ranch / Land", href: "/search?q=ranch" },
+  { label: "Restaurants & Bars", href: "/search?type=Commercial&q=restaurant" },
+];
+
 export default async function LibraryPage() {
-  // pull a few tags + recent approved locations (simple, safe defaults)
-  const [tags, recent] = await Promise.all([
-    prisma.tag.findMany({ orderBy: { name: "asc" }, take: 50 }),
-    prisma.location.findMany({
-      where: { approved: true },
-      orderBy: { createdAt: "desc" },
-      take: 12,
-      include: { photos: true, tags: true },
-    }),
-  ]);
+  // Optional, quick counts by naive text filters (good enough for MVP).
+  // If a count fails, we’ll just show "—".
+  const counts = await Promise.all(
+    CATEGORIES.map(async (c) => {
+      try {
+        // crude heuristic: look in title/description/tags for the key term(s)
+        const term = decodeURIComponent(c.href.split("q=").pop() || "")
+          .replace(/&.*/,"")
+          .trim();
+        const count = await prisma.location.count({
+          where: {
+            approved: true,
+            OR: [
+              term ? { title: { contains: term, mode: "insensitive" } } : undefined,
+              term ? { description: { contains: term, mode: "insensitive" } } : undefined,
+            ].filter(Boolean) as any,
+          },
+        });
+        return count;
+      } catch {
+        return undefined;
+      }
+    })
+  );
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-6">Location Library</h1>
+      <h1 className="text-2xl font-semibold mb-2">Location Library</h1>
+      <p className="text-gray-700 mb-6">
+        Explore popular categories. Click a tile to jump into pre-filtered search results.
+      </p>
 
-      <section className="mb-10">
-        <h2 className="text-xl font-semibold mb-3">Browse by Tag</h2>
-        <div className="flex flex-wrap gap-2">
-          {tags.map((t: any) => (
-            <Link
-              key={t.id}
-              href={`/search?tags=${encodeURIComponent(t.name)}`}
-              className="px-3 py-1.5 border rounded hover:bg-gray-50 text-sm"
-            >
-              {t.name}
-            </Link>
-          ))}
-          {tags.length === 0 && <div className="text-gray-600">No tags yet.</div>}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-xl font-semibold mb-3">Recently Approved</h2>
-        {recent.length === 0 ? (
-          <div className="text-gray-600">No locations yet. Approve a submission to see it here.</div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recent.map((loc: any) => {
-              const hero = loc.photos.find((p: any) => p.isPrimary)?.url || loc.photos[0]?.url || "";
-              return (
-                <Link
-                  key={loc.id}
-                  href={`/locations/${loc.slug}`}
-                  className="border rounded overflow-hidden hover:shadow"
-                >
-                  <div
-                    className="h-40 bg-gray-100 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${hero})` }}
-                  />
-                  <div className="p-3">
-                    <div className="font-semibold">{loc.title}</div>
-                    <div className="text-sm text-gray-600">
-                      {loc.propertyType}{loc.city ? ` · ${loc.city}` : ""}{loc.region ? `, ${loc.region}` : ""}
-                    </div>
-                    {loc.tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {loc.tags.slice(0, 4).map((t: any) => (
-                          <span key={t.id} className="text-xs px-2 py-0.5 border rounded">
-                            {t.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {CATEGORIES.map((c, i) => (
+          <Link
+            key={c.label}
+            href={c.href}
+            className="border rounded p-5 hover:shadow bg-white"
+          >
+            <div className="flex items-baseline justify-between">
+              <div className="font-medium">{c.label}</div>
+              <div className="text-sm text-gray-500">
+                {typeof counts[i] === "number" ? `${counts[i]}+` : "—"}
+              </div>
+            </div>
+            {c.hint && <div className="text-sm text-gray-600 mt-1">{c.hint}</div>}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
