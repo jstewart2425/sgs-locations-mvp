@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import ClientLogos from "@/components/ClientLogos";
 
 // --- Simple helpers ---
 function classNames(...a: (string | false | null | undefined)[]) {
@@ -31,8 +32,7 @@ export default async function HomePage() {
     { label: "Restaurants & Bars", href: "/search?type=Commercial&q=restaurant" },
   ];
 
-  // Client “logos” -> start with text; swap to images later
-  const clients = ["Landman", "Yellowstone", "Lioness", "Madison", "1883", "1882"];
+  
 
   return (
     <div>
@@ -152,21 +152,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CLIENT LOGOS / TRUST STRIP */}
-      <section className="max-w-6xl mx-auto px-4 py-10 md:py-14">
-        <h2 className="text-2xl font-semibold mb-4">Trusted by industry leaders</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {clients.map((name) => (
-            <div
-              key={name}
-              className="border rounded h-16 flex items-center justify-center text-sm text-gray-700 bg-white"
-              title={name}
-            >
-              {name}
-            </div>
-          ))}
-        </div>
-      </section>
+     {/* CLIENT LOGOS / TRUST STRIP */}
+<ClientLogos />
+
 
       {/* SERVICES */}
       <section className="bg-gray-50 border-y">
