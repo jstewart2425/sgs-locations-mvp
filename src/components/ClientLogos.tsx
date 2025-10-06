@@ -18,14 +18,14 @@ export default function ClientLogos() {
         {LOGOS.map((l) => (
           <div
             key={l.name}
-            className="flex items-center justify-center border rounded bg-white h-16 px-3 overflow-hidden"
+            className="flex items-center justify-center border rounded bg-white h-20 px-4 overflow-hidden"
             title={l.name}
             aria-label={l.name}
           >
             <img
               src={l.src}
               alt={l.name}
-              className="max-h-10 w-auto object-contain block"
+              className="max-h-14 w-auto object-contain block"
               loading="lazy"
             />
           </div>
@@ -34,4 +34,3 @@ export default function ClientLogos() {
     </section>
   );
 }
-
