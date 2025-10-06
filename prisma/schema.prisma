@@ -105,7 +105,7 @@ model SavedSearch {
 
 model Inquiry {
   id          String    @id @default(cuid())
-  name        String
+  name        String                    // keep existing
   email       String
   phone       String?
   company     String?
@@ -113,10 +113,18 @@ model Inquiry {
   startDate   DateTime?
   endDate     DateTime?
   message     String?
-  location    Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  // keep relation optional for now to avoid destructive change
+  location    Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
   locationId  String?
-  createdAt   DateTime   @default(now())
+
+  status      String    @default("new") // NEW
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt      // NEW
+
+  @@index([locationId, createdAt])      // NEW
 }
+
 
 model PropertySubmission {
   id           String   @id @default(cuid())
