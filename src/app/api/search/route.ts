@@ -1,3 +1,7 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -42,7 +46,7 @@ function buildPageLink(reqUrl: string, page: number | null) {
 
 export async function GET(req: NextRequest) {
   try {
-    const url = new URL(req.url);
+    const url = req.nextUrl;
     const sp = url.searchParams;
 
     // --- Filters ---
